@@ -1,0 +1,56 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Byte-compiled / optimized / DLL files
+*.pyo
+*.pyd
+*.so
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+temp/
+
+# ===== Data Engineer related =====
+# Airflow
+airflow/
+dags/__pycache__/
+dags/*.pyc
+
+# Spark
+spark-warehouse/
+.metastore_db/
+
+# Hadoop
+derby.log
+
+# DVC
+.dvc/
+.cache/
+*.dvc
+
+# ===== IDEs =====
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===== System files =====
+.DS_Store
+Thumbs.db
+
+# ===== Custom exclude =====
+log_search/
