@@ -38,8 +38,8 @@ Project kết hợp **ETL pipeline** và **AI classification** để xử lý d�
    - Lấy **top 30 keyword phổ biến nhất** từ dữ liệu tìm kiếm.  
      **Lý do:** sử dụng **API miễn phí (free tier)** để thử nghiệm, giới hạn số lượng request mỗi lần.
 
-- Đây chỉ là **sample test**, giúp kiểm tra pipeline, AI phân loại hoạt động đúng.
-- Nếu có kinh phí hoặc API trả phí, hoàn toàn có thể **phân tích toàn bộ keyword**, từ đó thu được insight đầy đủ hơn về hành vi người dùng.
+     Đây chỉ là **sample test**, giúp kiểm tra pipeline, AI phân loại hoạt động đúng.
+     Nếu có kinh phí hoặc API trả phí, hoàn toàn có thể **phân tích toàn bộ keyword**, từ đó thu được insight đầy đủ hơn về hành vi người dùng.
 
 - Quá trình AI Classification:
   1. Chuẩn hóa từ khóa: thêm dấu, tách từ, sửa lỗi chính tả.
