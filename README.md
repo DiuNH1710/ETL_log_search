@@ -35,12 +35,17 @@ Project kết hợp **ETL pipeline** và **AI classification** để xử lý d�
 
 3. **AI Keyword Classification** ⭐
 
-   - Lấy top 30 keyword phổ biến nhất.
-   - Gọi **OpenAI / OpenRouter API** để phân loại keyword theo thể loại:  
-     `Action, Romance, Comedy, Drama, K/C Drama, Animation, Reality Show, Sports, TV Channel, News, Other`.
-   - Chuẩn hóa từ khóa: thêm dấu, tách từ, sửa lỗi chính tả.
-   - Nhận diện ý nghĩa: tên phim, show, đội tuyển, nhân vật, mô tả thể loại.
-   - Trả về **1 JSON object** `{keyword: category}`.
+   - Lấy **top 30 keyword phổ biến nhất** từ dữ liệu tìm kiếm.  
+     **Lý do:** sử dụng **API miễn phí (free tier)** để thử nghiệm, giới hạn số lượng request mỗi lần.
+
+- Đây chỉ là **sample test**, giúp kiểm tra pipeline, AI phân loại hoạt động đúng.
+- Nếu có kinh phí hoặc API trả phí, hoàn toàn có thể **phân tích toàn bộ keyword**, từ đó thu được insight đầy đủ hơn về hành vi người dùng.
+
+- Quá trình AI Classification:
+  1. Chuẩn hóa từ khóa: thêm dấu, tách từ, sửa lỗi chính tả.
+  2. Nhận diện ý nghĩa: tên phim, show, đội tuyển, nhân vật, mô tả thể loại.
+  3. Gán thể loại phù hợp: `Action, Romance, Comedy, Drama, K/C Drama, Animation, Reality Show, Sports, TV Channel, News, Other`.
+  4. Trả về **1 JSON object** `{keyword: category}`.
 
 4. **Output & Reporting**
    - Lưu kết quả top keyword theo tháng: `most_search_t6`, `most_search_t7`.
