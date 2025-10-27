@@ -1,6 +1,24 @@
-## 🔹 Kiến trúc ETL + AI & Flow Diagram
+## 📌 Tổng quan project
 
 Project kết hợp **ETL pipeline** và **AI classification** để xử lý dữ liệu log tìm kiếm người dùng.
+
+### Mục tiêu chính của project:
+
+1. **Phân tích hành vi người dùng**:
+
+   - Theo dõi các từ khóa người dùng tìm kiếm.
+   - Nhận diện các thể loại nội dung mà người dùng quan tâm (phim, show, thể thao, hoạt hình…).
+
+2. **Xử lý dữ liệu lớn & ETL**:
+
+   - Đọc dữ liệu parquet nhiều thư mục, làm sạch dữ liệu thiếu, chuẩn hóa cột.
+   - Tính toán top keyword theo từng user, theo tháng (ví dụ tháng 6, tháng 7).
+   - Xuất dữ liệu ra CSV phục vụ báo cáo hoặc dashboard.
+
+3. **Sử dụng AI để phân loại keyword**:
+   - Chuẩn hóa tên từ khóa (thêm dấu, tách từ, sửa lỗi chính tả).
+   - Gán thể loại phù hợp nhất dựa trên danh sách thể loại predefined (Action, Romance, Comedy, Drama, K/C Drama, Animation, Reality Show…).
+   - Giúp phân tích chính xác sở thích người dùng, từ đó cải thiện recommendation system hoặc marketing.
 
 ### Flow & Kiến trúc:
 
