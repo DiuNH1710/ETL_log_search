@@ -33,37 +33,78 @@ Project kết hợp **ETL pipeline**, **AI classification** và **EDA visualizat
 
 ---
 
-## Flow & Kiến trúc tổng quan
+## Quy trình xử lý dữ liệu (Workflow chi tiết)
 
-1. **Data Ingestion**
+Toàn bộ pipeline được chia thành 4 giai đoạn chính:  
+**Data Ingestion → Data Cleaning & Transformation → AI Keyword Classification → EDA & Visualization**
 
-   - Đọc dữ liệu parquet nhiều thư mục (`log_search/`) bằng PySpark.
-   - Dữ liệu thô gồm: `eventID, datetime, user_id, keyword, category, platform, networkType, userPlansMap`.
+---
 
-2. **Data Cleaning & Transformation**
+### 1️⃣ **Data Ingestion**
 
-   - Loại bỏ dòng trống, NULL, chuẩn hóa cột `keyword`.
-   - Tạo cột `month` từ `datetime`.
-   - Tính **top keyword mỗi user theo tháng** (top 1 hoặc top 3).
+- **Mục tiêu:** đọc và hợp nhất dữ liệu log tìm kiếm từ nhiều thư mục, định dạng `.parquet`.
+- **Công cụ:** sử dụng **PySpark** để xử lý dữ liệu lớn hiệu quả.
+- **Nguồn dữ liệu:** thư mục `log_search/`, mỗi tệp tương ứng với một phần log tìm kiếm trong tháng.
+- **Dữ liệu thô chứa**: `eventID, datetime, user_id, keyword, category, platform, networkType, userPlansMap`.
 
-3. **AI Keyword Classification**
+---
 
-   - Lấy top 30 keyword phổ biến → gọi API để gán thể loại phù hợp.
-   - Xuất kết quả JSON và CSV (`keyword_classified_top30.csv`).
+### 2️⃣ **Data Cleaning & Transformation**
 
-4. **EDA & Visualization**
+- **Mục tiêu:** chuẩn hóa và tạo dataset phân tích theo tháng.
+- **Các bước thực hiện:**
+  - Loại bỏ các dòng có giá trị **rỗng hoặc NULL** trong cột `keyword`.
+  - Chuẩn hóa text (xóa khoảng trắng thừa, chữ thường, ký tự đặc biệt...).
+  - Sinh cột **`month`** bằng cách trích xuất tháng từ `datetime`.
+  - Tính toán **top keyword của mỗi user theo từng tháng**:
+    - `top1_keywords` → từ khóa phổ biến nhất của từng user/tháng.
+    - `top3_keywords` → ba từ khóa được tìm kiếm nhiều nhất.
+  - Lưu kết quả trung gian ra thư mục:
+    - `outputs/top_keyword_by_month/`
+    - `outputs/top1_keywords/`
+    - `outputs/top3_keywords/`
 
-   - Thực hiện bằng file `eda_keyword.py`.
-   - Sử dụng `matplotlib` và `seaborn` để vẽ biểu đồ.
-   - Tự động lưu biểu đồ ra thư mục `outputs/charts/` dưới dạng `.png`.
+---
 
-   **Các biểu đồ chính:**
+### 3️⃣ **AI Keyword Classification**
 
-   - **Top 20 từ khóa phổ biến (tổng hợp 2 tháng)**
-   - **Heatmap:** So sánh tần suất tìm kiếm tháng 6 vs tháng 7
-   - **User behavior:** So sánh top1 tháng 6 → top1 tháng 7
-   - **Xu hướng tìm kiếm tháng 6 và tháng 7**
-   - **Phân tích thể loại trong top 30 từ khóa phổ biến**
+- **Mục tiêu:** gán **thể loại nội dung** phù hợp cho các từ khóa phổ biến, giúp hiểu rõ hơn hành vi người dùng.
+- **Công cụ:** script `ai_keyword_classifier.py` gọi **OpenRouter API (free tier)** để thực hiện phân loại tự động.
+- **Quy trình:**
+  1. Lấy **top 30 từ khóa phổ biến nhất** từ dữ liệu tổng hợp.
+  2. Gửi từng từ khóa đến API để gán **thể loại phù hợp nhất**, ví dụ:
+     - `Action`, `Romance`, `Comedy`, `Drama`, `K-Drama`, `C-Drama`, `Animation`, `Reality Show`, `Sports`, `TV Channel`, `News`, `Other`…
+  3. Nhận phản hồi JSON dạng:
+     ```json
+     {
+       "NARUTO": "Animation",
+       "Running Man": "Reality Show",
+       "The Heirs": "K-Drama"
+     }
+     ```
+  4. Xuất kết quả:
+     - **CSV:** `outputs/keyword_classified_top30.csv`
+     - **JSON:** lưu tạm trong quá trình chạy để kiểm tra nhanh.
+- **Lưu ý:**  
+  Do dùng **OpenRouter free API**, hệ thống chỉ test trên **30 từ khóa phổ biến nhất** để đảm bảo giới hạn request.  
+  Nếu có API trả phí → có thể mở rộng sang **toàn bộ từ khóa trong log** để phân loại sâu hơn.
+
+---
+
+### 4️⃣ **EDA & Visualization**
+
+- **Mục tiêu:** trực quan hóa kết quả ETL & AI classification để phân tích xu hướng tìm kiếm.
+- **Thực hiện tại:** file `eda_keywords.ipynb` (hoặc `top_keywords_analysis.py`)
+- **Công cụ:** `matplotlib`, `seaborn`, `pandas`
+- **Tự động lưu biểu đồ:** thư mục `outputs/charts/` dưới định dạng `.png`.
+
+  **Các biểu đồ chính:**
+
+  - **Top 20 từ khóa phổ biến (tổng hợp 2 tháng)**
+  - **Heatmap:** So sánh tần suất tìm kiếm tháng 6 vs tháng 7
+  - **User behavior:** So sánh top1 tháng 6 → top1 tháng 7
+  - **Xu hướng tìm kiếm tháng 6 và tháng 7**
+  - **Phân tích thể loại trong top 30 từ khóa phổ biến**
 
 ---
 
