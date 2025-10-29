@@ -69,6 +69,7 @@ Project kết hợp **ETL pipeline**, **AI classification** và **EDA visualizat
 
 ## 📂 Cấu trúc thư mục
 
+```bash
 LOG_SEARCH_ETL/
 │
 ├── log_search/ # (dữ liệu gốc)
@@ -91,6 +92,8 @@ LOG_SEARCH_ETL/
 ├── top_keywords_analysis.py # Phân tích từ khóa tổng thể
 │
 └── README.md # Tài liệu mô tả dự án
+
+```
 
 ## 📊 Ví dụ biểu đồ
 
