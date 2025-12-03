@@ -100,6 +100,21 @@ The entire pipeline consists of **4 main stages**:
 
 - **Raw data contains:** eventID, datetime, user_id, keyword, category, platform, networkType, userPlansMap.
 
+```python
+  import glob
+  from pyspark.sql import SparkSession
+
+  spark = SparkSession.builder.appName("ReadParquet").getOrCreate()
+
+  # Find all .parquet files in the folder
+  files = glob.glob(r"D:\study_de\Homework\log_search_etl\log_search\20220601\*.parquet")
+
+  # read all find and uninon
+  df = spark.read.parquet(*files)
+  df.printSchema()
+
+```
+
 ### 2️⃣ **Data Cleaning & Transformation**
 
 2️⃣ Data Cleaning & Transformation
@@ -122,6 +137,43 @@ The entire pipeline consists of **4 main stages**:
 
 5. Save intermediate results to:
    `outputs/top_keyword_by_month/`, `outputs/top1_keywords/`, `outputs/top3_keywords/`
+
+```python
+  def get_top_keyword_by_month(df: DataFrame) -> DataFrame:
+    """
+     Get top 1 keyword per user_id and per month, then pivot into separate columns.
+    """
+       # Convert datetime to date and extract month
+    df_with_month = df.withColumn("date", to_date("datetime")) \
+                      .withColumn("month", month("date"))
+
+
+      # Count keyword searches per user per month
+    keyword_count = (
+        df_with_month.groupBy("user_id", "month", "keyword")
+                     .agg(count("*").alias("search_count"))
+    )
+
+   # Window specification per user + month
+    windowSpec = Window.partitionBy("user_id", "month").orderBy(col("search_count").desc())
+
+    # Rank and filter top keyword
+    top_keywords = (
+        keyword_count.withColumn("rank", row_number().over(windowSpec))
+                     .filter(col("rank") == 1)
+                     .select("user_id", "month", "keyword", "search_count")
+    )
+
+    # Pivot to get columns most_search_t6, most_search_t7
+    pivot_df = top_keywords.groupBy("user_id").pivot("month", [6, 7]) \
+                           .agg(first("keyword").alias("most_search"))
+
+     # Rename columns for clarity
+    pivot_df = pivot_df.withColumnRenamed("6", "most_search_t6") \
+                       .withColumnRenamed("7", "most_search_t7")
+
+    return pivot_df
+```
 
 **Note:** In production, these would ideally be written to a database (PostgreSQL, MySQL, or NoSQL). For this project:
 
@@ -152,6 +204,110 @@ The entire pipeline consists of **4 main stages**:
   4. Export results:
      - **CSV:** `outputs/keyword_classified_top30.csv`
      - **JSON:** (optional for quick checking).
+
+```python
+
+# --- 4. Classify keywords via API ---
+def classify_keywords(keywords, retries=3):
+    """
+    Gửi danh sách keywords cho model GPT để phân loại.
+    Trả về dict {keyword: category}
+    """
+    movie_list = json.dumps(keywords, ensure_ascii=False)
+
+    prompt = f"""
+    Bạn là chuyên gia phân loại nội dung phim, chương trình truyền hình và các loại nội dung giải trí.
+
+     Nguyên tắc quan trọng:
+    - Không được trả về "Other" nếu có thể đoán được dù chỉ một phần ý nghĩa.
+    - Luôn cố gắng sửa lỗi, nhận diện tên gần đúng hoặc đoán thể loại gần đúng.
+    - Nếu không chắc → chọn thể loại gần nhất (VD: từ mô tả tình cảm → Romance, tên địa danh thể thao → Sports, chương trình giải trí → Reality Show, v.v.)
+
+     Nhiệm vụ:
+    1. **Chuẩn hoá tên**: thêm dấu tiếng Việt nếu cần, tách từ, chỉnh chính tả (vd: "thuyếtminh" → "Thuyết minh", "tramnamu" → "Trăm năm hữu duyên", "capdoi" → "Cặp đôi").
+    2. **Nhận diện ý nghĩa gốc**:
+        - Có thể là tên phim, show, series, đội tuyển, quốc gia, nhân vật, hay mô tả thể loại nội dung.
+        - Nếu không rõ ràng, chọn thể loại gần nhất.
+    3. **Gán thể loại phù hợp nhất** trong các nhóm:
+        - Action
+        - Romance
+        - Comedy
+        - Horror
+        - Animation
+        - Drama
+        - C Drama
+        - K Drama
+        - Sports
+        - Music
+        - Reality Show
+        - TV Channel
+        - News
+        - Other
+
+       Một số quy tắc gợi ý nhanh:
+    - Có từ “VTV”, “HTV”, “Channel” → TV Channel
+    - Có “running”, “master key”, “reality”, “idol”, “show”, “challenge” → Reality Show
+    - Quốc gia, CLB bóng đá, sự kiện thể thao → Sports hoặc News
+    - Có từ “romantic”, “love”, “kiss” → Romance
+    - Có “potter”, “hogwarts”, “wizard”, “magic” → Drama / Fantasy
+    - Tên phim, diễn viên, hoặc series Trung Quốc → C Drama
+    - Tên phim, diễn viên, hoặc series Hàn Quốc → K Drama
+    - Tên hoạt hình, nhân vật anime → Animation
+    - Các từ mô tả hành động, chiến đấu (“fight”, “gun”, “hero”, “war”) → Action
+    - Các cụm từ mang tính tin tức (“breaking”, “live”, “news”) → News
+    - Nếu chỉ là cụm chung chung (“video”, “clip”, “xem phim”) → Other
+
+     Chỉ trả về **1 JSON object**.
+    - Key = tên gốc trong danh sách.
+    - Value = thể loại đã phân loại.
+
+    Ví dụ:
+    {{
+      "thuyếtminh": "Other",
+      "bigfoot": "Horror",
+      "capdoi": "Romance",
+      "ARGEN": "Sports",
+      "nhật ký": "Drama",
+      "PENT": "C Drama",
+      "running": "Reality Show",
+      "VTV3": "TV Channel"
+    }}
+
+    Danh sách:
+    {movie_list}
+    """
+
+    for attempt in range(retries):
+        try:
+            response = client.chat.completions.create(
+            model="tngtech/deepseek-r1t2-chimera:free",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2
+        )
+
+            text = response.choices[0].message.content.strip()
+            print("Raw text:\n", text[:500], "\n---\n")
+            parsed = extract_json_from_text(text)
+
+            if parsed and isinstance(parsed, dict):
+                result = {}
+                for k in keywords:
+                    result[k] = parsed.get(k, "Other")
+                    # Add missing keywords with "Other"
+                for missing in set(keywords) - set(parsed.keys()):
+                    result[missing] = "Other"
+                return result
+            else:
+                print("Invalid JSON, retrying...")
+
+        except Exception as e:
+            print(f"API error ({e}), retry {attempt+1}/{retries}...")
+            time.sleep(3)
+
+    # fallback if all retries fail
+    return {k: "Other" for k in keywords}
+
+```
 
 - **Note:**  
    Free API limits requests, so only top 30 keywords are classified. Paid API could extend to all keywords.
