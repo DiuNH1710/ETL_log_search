@@ -1,12 +1,12 @@
 # User Search Log Analysis – ETL + AI Classification + EDA Visualization
 
-## Project Overview
+## 📝 Project Overview
 
 This project combines **ETL pipelines, AI keyword classification, and EDA visualization** to process and analyze user search log data. The goal is to understand user behavior, identify popular content types, and generate insights for recommendations or marketing.
 
----
+![alt text](images/image.png)
 
-![alt text](image.png)
+---
 
 ## 📂 Directory Structure
 
@@ -36,7 +36,7 @@ LOG_SEARCH_ETL/
 
 ```
 
-## Main Objectives
+## 🎯 Main Objectives
 
 ### 1. Analyze User Behavior
 
@@ -78,8 +78,6 @@ LOG_SEARCH_ETL/
 The entire pipeline consists of **4 main stages**:
 **Data Ingestion → Data Cleaning & Transformation → AI Keyword Classification → EDA & Visualization**
 
----
-
 ### 1️⃣ **Data Ingestion**
 
 - **Goal:** Read and consolidate search log data from multiple .parquet directories.
@@ -87,8 +85,6 @@ The entire pipeline consists of **4 main stages**:
 - **Tool:** PySpark for efficient large-scale data processing.
 
 - **Raw data contains:** eventID, datetime, user_id, keyword, category, platform, networkType, userPlansMap.
-
----
 
 ### 2️⃣ **Data Cleaning & Transformation**
 
@@ -146,8 +142,6 @@ The entire pipeline consists of **4 main stages**:
 - **Note:**  
    Free API limits requests, so only top 30 keywords are classified. Paid API could extend to all keywords.
 
----
-
 ### 4️⃣ **EDA & Visualization**
 
 - **Goal:** Visualize ETL & AI classification results to analyze search trends.
@@ -189,7 +183,7 @@ The entire pipeline consists of **4 main stages**:
 
 ![alt text](outputs/charts/keyword_category_distribution.png)
 
-## Recommended Improvements (Future)
+## 💡 Recommended Improvements (Future)
 
 1. **Save to a database** instead of CSV for scalability and easier queries.
 
