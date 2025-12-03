@@ -332,6 +332,37 @@ def classify_keywords(keywords, retries=3):
 
 - **Category distribution** in top 30 keywords
 
+```python
+  # ## Analysis of the Top 20 most popular keywords (based on real search volume)
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Drop null keywords
+df_top1_clean = df_top1.dropna(subset=['keyword'])
+
+# Get top 20 keywords by total search_count
+top20_real = (
+    df_top1_clean
+    .groupby('keyword', as_index=False)['search_count']
+    .sum()
+    .sort_values('search_count', ascending=False)
+    .head(20)
+
+)
+
+plt.figure(figsize=(10, 6))
+sns.barplot(data=top20_real, y='keyword', x='search_count', palette='Blues_d', hue='keyword',
+    legend=False,)
+plt.title("Top 20 Most Searched Keywords (Combined for 2 Months)", fontsize=14, fontweight='bold')
+plt.xlabel("Total Search Count", fontsize=12)
+plt.ylabel("Keyword", fontsize=12)
+plt.tight_layout()
+savefig("top20_keywords_overall")
+plt.show()
+
+
+```
+
 ---
 
 ## 📊 Sample Charts
