@@ -206,3 +206,11 @@ The entire pipeline consists of **4 main stages**:
 3. **Interactive dashboard** (Plotly, Dash, or Streamlit) instead of static PNG charts.
 
 4. **Automated pipeline** using Airflow for daily/weekly updates.
+
+## 👨‍💻 Author
+
+**Diu Nguyen**
+
+Data Engineer | Fullstack Developer
+
+📧 nguyenhuongdiu1710@gmail.com
