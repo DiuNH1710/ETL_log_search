@@ -5,7 +5,7 @@ from pyspark.sql.window import Window
 
 def get_top3_keywords_per_user(df: DataFrame) -> DataFrame:
     """
-    Trả về top 3 keyword được tìm nhiều nhất cho mỗi user_id.
+    Return the top 3 most searched keywords for each user_id.
     """
     keyword_count = (
         df.groupBy("user_id", "keyword")
@@ -27,14 +27,14 @@ def get_top3_keywords_per_user(df: DataFrame) -> DataFrame:
 
 def read_all_parquet(base_path: str, spark: SparkSession) -> DataFrame:
     """
-    Đọc toàn bộ file parquet trong tất cả thư mục con của base_path.
+    Read all parquet files recursively under base_path.
     """
     files = glob.glob(f"{base_path}/**/*.parquet", recursive=True)
     
     if not files:
-        raise FileNotFoundError(f"Không tìm thấy file parquet trong: {base_path}")
+        raise FileNotFoundError(f"No parquet files found in: {base_path}")
     
-    print(f"Tìm thấy {len(files)} file parquet.")
+    print(f"Found  {len(files)} file parquet.")
     df = spark.read.parquet(*files)
     return df
 
@@ -42,35 +42,35 @@ def read_all_parquet(base_path: str, spark: SparkSession) -> DataFrame:
 if __name__ == "__main__":
     base_path = r"D:\study_de\Homework\log_search_etl\log_search"
 
-    # Khởi tạo SparkSession
+    # Initialize SparkSession
     spark = SparkSession.builder.appName("TopKeywordsAnalysis").getOrCreate()
 
-    print("Đang đọc dữ liệu parquet...")
+    print("Reading parquet data...")
     df = read_all_parquet(base_path, spark)
 
-    print("Schema của dữ liệu:")
+    print("Schema of the dataset:")
     df.printSchema()
 
-    print("Đang phân tích top 3 keyword theo từng user_id...")
+    print("Calculating top 3 keywords per user_id...")
     top3_df = get_top3_keywords_per_user(df)
 
-    print("Kết quả top 3 keyword:")
+    print("Top 3 keywords result:")
     top3_df.show(50, truncate=False)
 
-    # Lấy top 1 keyword (rank == 1)
-    print("Lấy top 1 keyword theo từng user_id...")
+     # Get top 1 keyword per user (rank == 1)
+    print("Extracting top 1 keyword per user_id...")
     top1_df = top3_df.filter(col("rank") == 1)
 
-    # Ghi ra file CSV
+    # Output directories
     output_dir_top3 = r"D:\study_de\Homework\log_search_etl\outputs\top3_keywords"
     output_dir_top1 = r"D:\study_de\Homework\log_search_etl\outputs\top1_keywords"
 
-    print(f"Đang lưu kết quả vào: {output_dir_top3} và {output_dir_top1}")
+    print(f"Saving results to: {output_dir_top3} và {output_dir_top1}")
 
-    # Ghi dạng CSV (1 file duy nhất)
+    # Write CSV (single file)
     top3_df.coalesce(1).write.mode("overwrite").option("header", True).csv(output_dir_top3)
     top1_df.coalesce(1).write.mode("overwrite").option("header", True).csv(output_dir_top1)
 
-    print("Đã lưu thành công các file CSV kết quả!")
+    print("CSV files successfully saved!")
 
     spark.stop()

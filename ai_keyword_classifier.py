@@ -10,46 +10,48 @@ load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
 
 if not api_key:
-    raise ValueError(" Không tìm thấy OPENROUTER_API_KEY trong file .env")
+    raise ValueError(" OPENROUTER_API_KEY not found in .env file")
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=api_key
 )
 
-# --- 2. Đọc dữ liệu & làm sạch ---
+# --- 2. Read CSV & clean data ---
 file_path = r"outputs/top1_keywords/part-00000-2e1801df-6311-4001-9591-2fe8b7cd77fa-c000.csv"
 df = pd.read_csv(
     file_path,
     names=["user_id", "keyword", "search_count", "rank"], 
     header=0,                
-    on_bad_lines="skip",     # bỏ qua dòng lỗi
-    skip_blank_lines=True,   # bỏ dòng trống
+    on_bad_lines="skip",    
+    skip_blank_lines=True,  
     engine="python"         
 )
 
-# loại bỏ keyword null / trống
+# Drop null/empty keywords
 df = df.dropna(subset=["keyword"])
 df = df[df["keyword"].str.strip() != ""]
 
-# lấy top 30 keyword
+# Get top 30 keywords
 top_keywords = df.head(30)["keyword"].tolist()
 
 
-# --- 3. tách JSON từ text ---
+# --- 3. Extract JSON from text ---
 def extract_json_from_text(text):
-    """Tách JSON hợp lệ từ chuỗi có thể chứa text thừa"""
+    """Extract valid JSON object from a string that may contain extra text.
+    Returns dict if valid, else None."""
     try:
         start, end = text.find("{"), text.rfind("}")
         if start == -1 or end == -1:
-            raise ValueError("Không tìm thấy dấu ngoặc JSON")
+            raise ValueError("JSON braces not found")
         json_str = text[start:end+1]
         return json.loads(json_str)
     except Exception:
         return None
 
 
-# --- 4. Hàm gọi API phân loại ---
+
+# --- 4. Classify keywords via API ---
 def classify_keywords(keywords, retries=3):
     """
     Gửi danh sách keywords cho model GPT để phân loại.
@@ -121,7 +123,7 @@ def classify_keywords(keywords, retries=3):
 
     for attempt in range(retries):
         try:
-            response = client.chat.completions.create(   # dùng chat.completions thay vì responses.create
+            response = client.chat.completions.create( 
             model="tngtech/deepseek-r1t2-chimera:free",         
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2
@@ -135,39 +137,39 @@ def classify_keywords(keywords, retries=3):
                 result = {}
                 for k in keywords:
                     result[k] = parsed.get(k, "Other")
-                # nếu thiếu key → tự thêm "Other"
+                    # Add missing keywords with "Other"
                 for missing in set(keywords) - set(parsed.keys()):
                     result[missing] = "Other"
                 return result
             else:
-                print("JSON không hợp lệ, thử lại...")
+                print("Invalid JSON, retrying...")
 
         except Exception as e:
-            print(f" Lỗi API ({e}), thử lại ({attempt+1}/{retries})...")
+            print(f"API error ({e}), retry {attempt+1}/{retries}...")
             time.sleep(3)
 
-    # nếu vẫn thất bại sau retry
+    # fallback if all retries fail
     return {k: "Other" for k in keywords}
 
 
-# --- 5. Chia batch và gọi API ---
+# --- 5. Batch API calls ---
 batch_size = 10
 results = {}
 
 for i in range(0, len(top_keywords), batch_size):
     batch = top_keywords[i:i+batch_size]
-    print(f"\n Xử lý batch {i//batch_size + 1} ({len(batch)} keywords)...")
+    print(f"\n Processing batch{i//batch_size + 1} ({len(batch)} keywords)...")
     batch_result = classify_keywords(batch)
     results.update(batch_result)
-    print(f" Batch {i//batch_size + 1} có {len(batch_result)} kết quả")
+    print(f" Batch {i//batch_size + 1} có {len(batch_result)} results")
 
 
-# --- 6. Gộp & lưu kết quả ---
+# --- 6. Merge & save results ---
 classified_df = pd.DataFrame(list(results.items()), columns=["keyword", "category"])
 output_df = classified_df.copy()
 
-# lưu ra file CSV
+# save to CSV
 output_file = "outputs/keyword_classified_top30.csv"
 output_df.to_csv(output_file, index=False, encoding="utf-8-sig")
 
-print(f"\n Đã lưu kết quả 30 keyword vào: {output_file}")
+print(f"\n ĐTop 30 keyword classification saved to: {output_file}")

@@ -1,80 +1,137 @@
 # User Search Log Analysis – ETL + AI Classification + EDA Visualization
 
-## Tổng quan Project
+## Project Overview
 
-Project kết hợp **ETL pipeline**, **AI classification** và **EDA visualization** để xử lý và phân tích dữ liệu log tìm kiếm người dùng.
-
----
-
-## Mục tiêu chính
-
-1. **Phân tích hành vi người dùng**
-
-   - Theo dõi các từ khóa người dùng tìm kiếm.
-   - Nhận diện các thể loại nội dung mà người dùng quan tâm (phim, show, thể thao, hoạt hình…).
-
-2. **Xử lý dữ liệu lớn & ETL**
-
-   - Đọc dữ liệu parquet nhiều thư mục, làm sạch dữ liệu thiếu, chuẩn hóa cột.
-   - Tính toán top keyword theo từng user, theo tháng (ví dụ tháng 6, tháng 7).
-   - Xuất dữ liệu ra CSV phục vụ báo cáo hoặc dashboard.
-
-3. **AI Keyword Classification**
-
-   - Chuẩn hóa tên từ khóa (thêm dấu, tách từ, sửa lỗi chính tả).
-   - Gán thể loại phù hợp nhất dựa trên danh sách thể loại predefined (Action, Romance, Comedy, Drama, K/C Drama, Animation, Reality Show…).
-   - Giúp phân tích chính xác sở thích người dùng, hỗ trợ recommendation system hoặc marketing.
-
-4. **Phân tích & Trực quan hóa (EDA)**
-   - Khám phá và minh họa xu hướng tìm kiếm giữa **tháng 6 và tháng 7**.
-   - Phân tích **mức độ thay đổi độ phổ biến** của từng từ khóa.
-   - So sánh **tỷ lệ người dùng giữ nguyên top1 keyword** giữa hai tháng.
-   - Thống kê **phân bố thể loại** trong top keyword phổ biến.
+This project combines **ETL pipelines, AI keyword classification, and EDA visualization** to process and analyze user search log data. The goal is to understand user behavior, identify popular content types, and generate insights for recommendations or marketing.
 
 ---
 
-## Quy trình xử lý dữ liệu (Workflow chi tiết)
+![alt text](image.png)
 
-Toàn bộ pipeline được chia thành 4 giai đoạn chính:  
+## 📂 Directory Structure
+
+```bash
+LOG_SEARCH_ETL/
+│
+├── log_search/ # raw parquet data
+│
+├── outputs/
+│ ├── charts/ # charts output
+│ ├── top_keyword_by_month/ # top keywords by month
+│ ├── top1_keywords/ # top 1 keyword per month
+│ └── top3_keywords/ # top 3 keywords per month
+│ └── keyword_classified_top30.csv
+│
+├── .env # environment variables (API key, config)
+├── .gitignore
+│
+├── ai_keyword_classifier.py
+├── eda_keywords.ipynb
+├── ETL_log_search.ipynb
+│
+├── top_keyword_by_month.py
+├── top_keywords_analysis.py
+│
+└── README.md
+
+```
+
+## Main Objectives
+
+### 1. Analyze User Behavior
+
+- Track the keywords users search for.
+
+- Identify content types of interest: movies, shows, sports, animation, etc.
+
+### 2. Big Data Processing & ETL
+
+- Read parquet files across multiple directories, clean missing data, and standardize columns.
+
+- Compute top keywords per user per month (e.g., June, July).
+
+- Export intermediate results to CSV for reporting or visualization.
+
+### 3. AI Keyword Classification
+
+- Standardize keyword text (normalize accents, split words, fix typos).
+
+- Assign the most relevant content category based on predefined types:
+  Action, Romance, Comedy, Drama, K-Drama, C-Drama, Animation, Reality Show, Sports, TV Channel, News, Other.
+
+- Helps understand user preferences and support recommendation systems.
+
+### 4. Exploratory Data Analysis (EDA) & Visualization
+
+- Explore and visualize trends across June and July.
+
+- Analyze the popularity changes of keywords between months.
+
+- Compare user retention of top1 keyword between months.
+
+- Visualize category distribution in top keywords.
+
+---
+
+## Data Processing Workflow
+
+The entire pipeline consists of **4 main stages**:
 **Data Ingestion → Data Cleaning & Transformation → AI Keyword Classification → EDA & Visualization**
 
 ---
 
 ### 1️⃣ **Data Ingestion**
 
-- **Mục tiêu:** đọc và hợp nhất dữ liệu log tìm kiếm từ nhiều thư mục, định dạng `.parquet`.
-- **Công cụ:** sử dụng **PySpark** để xử lý dữ liệu lớn hiệu quả.
-- **Nguồn dữ liệu:** thư mục `log_search/`, mỗi tệp tương ứng với một phần log tìm kiếm trong tháng.
-- **Dữ liệu thô chứa**: `eventID, datetime, user_id, keyword, category, platform, networkType, userPlansMap`.
+- **Goal:** Read and consolidate search log data from multiple .parquet directories.
+
+- **Tool:** PySpark for efficient large-scale data processing.
+
+- **Raw data contains:** eventID, datetime, user_id, keyword, category, platform, networkType, userPlansMap.
 
 ---
 
 ### 2️⃣ **Data Cleaning & Transformation**
 
-- **Mục tiêu:** chuẩn hóa và tạo dataset phân tích theo tháng.
-- **Các bước thực hiện:**
-  - Loại bỏ các dòng có giá trị **rỗng hoặc NULL** trong cột `keyword`.
-  - Chuẩn hóa text (xóa khoảng trắng thừa, chữ thường, ký tự đặc biệt...).
-  - Sinh cột **`month`** bằng cách trích xuất tháng từ `datetime`.
-  - Tính toán **top keyword của mỗi user theo từng tháng**:
-    - `top1_keywords` → từ khóa phổ biến nhất của từng user/tháng.
-    - `top3_keywords` → ba từ khóa được tìm kiếm nhiều nhất.
-  - Lưu kết quả trung gian ra thư mục:
-    - `outputs/top_keyword_by_month/`
-    - `outputs/top1_keywords/`
-    - `outputs/top3_keywords/`
+2️⃣ Data Cleaning & Transformation
 
----
+- **Goal:** Standardize data and create monthly analysis datasets.
+
+**Steps:**
+
+1. Remove rows with **null/empty keywords.**
+
+2. Normalize text (trim whitespace, lowercase, remove special chars if needed).
+
+3. Extract `month` from `datetime`.
+
+4. Compute top keywords per user:
+
+`top1_keywords` → most searched keyword per user per month.
+
+`top3_keywords` → top 3 keywords per user per month.
+
+5. Save intermediate results to:
+   `outputs/top_keyword_by_month/`, `outputs/top1_keywords/`, `outputs/top3_keywords/`
+
+**Note:** In production, these would ideally be written to a database (PostgreSQL, MySQL, or NoSQL). For this project:
+
+- Saving as CSV allows easy sharing on GitHub.
+
+- Your EDA scripts read CSVs to generate charts.
 
 ### 3️⃣ **AI Keyword Classification**
 
-- **Mục tiêu:** gán **thể loại nội dung** phù hợp cho các từ khóa phổ biến, giúp hiểu rõ hơn hành vi người dùng.
-- **Công cụ:** script `ai_keyword_classifier.py` gọi **OpenRouter API (free tier)** để thực hiện phân loại tự động.
-- **Quy trình:**
-  1. Lấy **top 30 từ khóa phổ biến nhất** từ dữ liệu tổng hợp.
-  2. Gửi từng từ khóa đến API để gán **thể loại phù hợp nhất**, ví dụ:
+- **Goal:** Assign content categories for top keywords to better understand user interests.
+
+- **Tool:** ai_keyword_classifier.py using OpenRouter API (free tier).
+
+- **Process:**
+
+  1. Select top 30 keywords from aggregated data.
+
+  2. Send keywords to API → receive category predictions:
      - `Action`, `Romance`, `Comedy`, `Drama`, `K-Drama`, `C-Drama`, `Animation`, `Reality Show`, `Sports`, `TV Channel`, `News`, `Other`…
-  3. Nhận phản hồi JSON dạng:
+  3. Receive category predictions:
      ```json
      {
        "NARUTO": "Animation",
@@ -82,75 +139,62 @@ Toàn bộ pipeline được chia thành 4 giai đoạn chính:
        "The Heirs": "K-Drama"
      }
      ```
-  4. Xuất kết quả:
+  4. Export results:
      - **CSV:** `outputs/keyword_classified_top30.csv`
-     - **JSON:** lưu tạm trong quá trình chạy để kiểm tra nhanh.
-- **Lưu ý:**  
-  Do dùng **OpenRouter free API**, hệ thống chỉ test trên **30 từ khóa phổ biến nhất** để đảm bảo giới hạn request.  
-  Nếu có API trả phí → có thể mở rộng sang **toàn bộ từ khóa trong log** để phân loại sâu hơn.
+     - **JSON:** (optional for quick checking).
+
+- **Note:**  
+   Free API limits requests, so only top 30 keywords are classified. Paid API could extend to all keywords.
 
 ---
 
 ### 4️⃣ **EDA & Visualization**
 
-- **Mục tiêu:** trực quan hóa kết quả ETL & AI classification để phân tích xu hướng tìm kiếm.
-- **Thực hiện tại:** file `eda_keywords.ipynb` (hoặc `top_keywords_analysis.py`)
-- **Công cụ:** `matplotlib`, `seaborn`, `pandas`
-- **Tự động lưu biểu đồ:** thư mục `outputs/charts/` dưới định dạng `.png`.
+- **Goal:** Visualize ETL & AI classification results to analyze search trends.
 
-  **Các biểu đồ chính:**
+- **Tool:** `matplotlib`, `seaborn`, `pandas`.
 
-  - **Top 20 từ khóa phổ biến (tổng hợp 2 tháng)**
-  - **Heatmap:** So sánh tần suất tìm kiếm tháng 6 vs tháng 7
-  - **User behavior:** So sánh top1 tháng 6 → top1 tháng 7
-  - **Xu hướng tìm kiếm tháng 6 và tháng 7**
-  - **Phân tích thể loại trong top 30 từ khóa phổ biến**
+- Charts auto-save to `outputs/charts/` as `.png`.
+
+**Charts include:**
+
+- **Top 20 most searched keywords** (combined months)
+
+- **Heatmap:** Compare search frequency June vs July
+
+- **User behavior:** top1 keyword retention from June → July
+
+- **Keyword trend analysis:** rising/falling popularity
+
+- **Category distribution** in top 30 keywords
 
 ---
 
-## 📂 Cấu trúc thư mục
+## 📊 Sample Charts
 
-```bash
-LOG_SEARCH_ETL/
-│
-├── log_search/ # (dữ liệu gốc)
-│
-├── outputs/
-│ ├── charts/ # Lưu biểu đồ đầu ra (PNG)
-│ ├── top_keyword_by_month/ # Top từ khóa theo từng tháng
-│ ├── top1_keywords/ # Từ khóa top 1 mỗi tháng
-│ └── top3_keywords/ # Top 3 từ khóa mỗi tháng
-│ └── keyword_classified_top30.csv # 30 từ khóa phổ biến nhất
-│
-├── .env # Thông tin môi trường (API key, config)
-├── .gitignore # Loại trừ các file không cần commit
-│
-├── ai_keyword_classifier.py # Script AI phân loại nội dung từ khóa
-├── eda_keywords.ipynb # Notebook phân tích khám phá dữ liệu (EDA)
-├── ETL_log_search.ipynb
-│
-├── top_keyword_by_month.py # Tính toán top từ khóa theo tháng
-├── top_keywords_analysis.py # Phân tích từ khóa tổng thể
-│
-└── README.md # Tài liệu mô tả dự án
+- **Top 20 keywords:**
+  ![alt text](outputs/charts/top20_keywords_overall.png)
 
-```
+- **Heatmap June vs July:**
+  ![alt text](outputs/charts/heatmap_top20_keywords_t6_t7.png)
 
-## 📊 Ví dụ biểu đồ
+- **User top1 retention:**
+  ![alt text](outputs/charts/user_top1_change_ratio.png)
 
-- **Top 20 từ khóa được tìm kiếm nhiều nhất:**
-  ![alt text](image.png)
+- **Keyword trend analysis:**
+  ![alt text](outputs/charts/top10_keyword_growth_t6_to_t7.png)
 
-- **Heatmap:** So sánh tần suất tìm kiếm tháng 6 vs tháng 7
-  ![alt text](image-1.png)
+- **Category distribution (top30):**
+  ![alt text](outputs/charts/keyword_category_distribution_bar.png)
 
-- **User behavior:** So sánh top1 tháng 6 → top1 tháng 7
-  ![alt text](image-2.png)
+![alt text](outputs/charts/keyword_category_distribution.png)
 
-- **Xu hướng tìm kiếm tháng 6 và tháng 7**
-  ![alt text](image-3.png)
+## Recommended Improvements (Future)
 
-- **Phân tích thể loại trong top 30 từ khóa phổ biến**
-  ![alt text](image-4.png)
+1. **Save to a database** instead of CSV for scalability and easier queries.
 
-![alt text](image-5.png)
+2. **Classify all keywords** (beyond top 30) if using paid AI API.
+
+3. **Interactive dashboard** (Plotly, Dash, or Streamlit) instead of static PNG charts.
+
+4. **Automated pipeline** using Airflow for daily/weekly updates.
