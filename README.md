@@ -36,6 +36,20 @@ LOG_SEARCH_ETL/
 
 ```
 
+**📁 Note: About the log_search/ Folder**
+
+The folder log_search/ contains all raw .parquet files used for the ETL and analysis in this project.
+However, these files are large and therefore not included in the GitHub repository.
+
+If you want to run the pipeline locally, place your parquet files in:
+
+```bash
+  log_search/
+      ├── part-0000.parquet
+      ├── part-0001.parquet
+      └── ...
+```
+
 ## 🎯 Main Objectives
 
 ### 1. Analyze User Behavior
